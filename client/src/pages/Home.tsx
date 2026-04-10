@@ -1,236 +1,335 @@
 import { useState } from "react";
-import { Package, AlertTriangle, TrendingUp } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
-import KPICard from "@/components/KPICard";
-import StockChart from "@/components/StockChart";
-import ReorderAlerts from "@/components/ReorderAlerts";
-import WarehouseMap from "@/components/WarehouseMap";
+import { Search, MapPin, DollarSign, Zap, ShoppingCart, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Streamdown } from "streamdown";
 
 /**
- * Home Page - StockFlow Dashboard
+ * Home Page - Vehicle E-Commerce Showcase
  * 
- * Design Philosophy: Soft Minimalism
- * - Hero section with gradient background
- * - KPI cards with organic shapes
- * - Stock level chart with smooth animations
- * - Reorder alerts list with severity indicators
- * - Warehouse map with distribution overview
+ * Public-facing storefront for Japanese vehicle sales
+ * Features: Vehicle catalog, filtering by region, search, and shopping cart
  */
 
+interface Vehicle {
+  id: number;
+  sku: string;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  region: string;
+  condition: string;
+  imageUrl: string;
+  mileage?: number;
+}
+
 export default function Home() {
-  const [activeModule] = useState("overview");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [cartCount, setCartCount] = useState(0);
 
-  // Mock data for stock levels by category
-  const stockData = [
-    { category: "Electronics", stock: 2400, capacity: 3000 },
-    { category: "Hardware", stock: 1800, capacity: 2500 },
-    { category: "Software", stock: 900, capacity: 1200 },
-    { category: "Accessories", stock: 1200, capacity: 1500 },
-    { category: "Tools", stock: 2100, capacity: 2800 },
-    { category: "Supplies", stock: 1500, capacity: 2000 },
+  // Mock vehicle data
+  const vehicles: Vehicle[] = [
+    {
+      id: 1,
+      sku: "JPN-2024-001",
+      make: "Toyota",
+      model: "Camry",
+      year: 2023,
+      price: 24999,
+      region: "Tokyo",
+      condition: "excellent",
+      imageUrl: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=500&h=400&fit=crop",
+      mileage: 15000,
+    },
+    {
+      id: 2,
+      sku: "JPN-2024-002",
+      make: "Honda",
+      model: "Civic",
+      year: 2022,
+      price: 19999,
+      region: "Osaka",
+      condition: "good",
+      imageUrl: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=400&fit=crop",
+      mileage: 32000,
+    },
+    {
+      id: 3,
+      sku: "JPN-2024-003",
+      make: "Nissan",
+      model: "Altima",
+      year: 2023,
+      price: 22999,
+      region: "Yokohama",
+      condition: "excellent",
+      imageUrl: "https://images.unsplash.com/photo-1606611013016-969c19d14444?w=500&h=400&fit=crop",
+      mileage: 8000,
+    },
+    {
+      id: 4,
+      sku: "JPN-2024-004",
+      make: "Mazda",
+      model: "CX-5",
+      year: 2022,
+      price: 26999,
+      region: "Kobe",
+      condition: "good",
+      imageUrl: "https://images.unsplash.com/photo-1605559424843-9e4c3ca4628d?w=500&h=400&fit=crop",
+      mileage: 28000,
+    },
+    {
+      id: 5,
+      sku: "JPN-2024-005",
+      make: "Subaru",
+      model: "Outback",
+      year: 2023,
+      price: 28999,
+      region: "Sapporo",
+      condition: "excellent",
+      imageUrl: "https://images.unsplash.com/photo-1606611013016-969c19d14444?w=500&h=400&fit=crop",
+      mileage: 5000,
+    },
+    {
+      id: 6,
+      sku: "JPN-2024-006",
+      make: "Mitsubishi",
+      model: "Outlander",
+      year: 2021,
+      price: 21999,
+      region: "Nagoya",
+      condition: "fair",
+      imageUrl: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=400&fit=crop",
+      mileage: 45000,
+    },
   ];
 
-  // Mock data for reorder alerts
-  const reorderAlerts = [
-    {
-      id: "1",
-      sku: "SKU-001-A",
-      productName: "Industrial Bearing Set",
-      currentStock: 45,
-      reorderThreshold: 100,
-      severity: "critical" as const,
-      status: "pending" as const,
-    },
-    {
-      id: "2",
-      sku: "SKU-002-B",
-      productName: "Hydraulic Pump Assembly",
-      currentStock: 120,
-      reorderThreshold: 150,
-      severity: "warning" as const,
-      status: "ordered" as const,
-    },
-    {
-      id: "3",
-      sku: "SKU-003-C",
-      productName: "Control Panel Module",
-      currentStock: 200,
-      reorderThreshold: 250,
-      severity: "info" as const,
-      status: "acknowledged" as const,
-    },
-    {
-      id: "4",
-      sku: "SKU-004-D",
-      productName: "Electrical Connectors",
-      currentStock: 30,
-      reorderThreshold: 75,
-      severity: "critical" as const,
-      status: "pending" as const,
-    },
-  ];
+  const regions = ["all", "Tokyo", "Osaka", "Yokohama", "Kobe", "Sapporo", "Nagoya"];
 
-  // Mock data for warehouse zones
-  const warehouseZones = [
-    {
-      id: "zone-1",
-      name: "Zone A - Electronics",
-      location: "Building 1, Floor 2",
-      inventory: 2400,
-      capacity: 3000,
-      utilization: 80,
-    },
-    {
-      id: "zone-2",
-      name: "Zone B - Hardware",
-      location: "Building 1, Floor 1",
-      inventory: 1800,
-      capacity: 2500,
-      utilization: 72,
-    },
-    {
-      id: "zone-3",
-      name: "Zone C - Supplies",
-      location: "Building 2, Floor 1",
-      inventory: 1500,
-      capacity: 2000,
-      utilization: 75,
-    },
-    {
-      id: "zone-4",
-      name: "Zone D - Tools",
-      location: "Building 2, Floor 2",
-      inventory: 2100,
-      capacity: 2800,
-      utilization: 75,
-    },
-  ];
+  const filteredVehicles = vehicles.filter((v) => {
+    const matchesSearch =
+      v.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.model.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRegion = selectedRegion === "all" || v.region === selectedRegion;
+    return matchesSearch && matchesRegion;
+  });
+
+  const handleAddToCart = (vehicleId: number) => {
+    setCartCount(cartCount + 1);
+  };
 
   return (
-    <DashboardLayout activeModule={activeModule}>
-      {/* Main Content */}
-      <div className="min-h-screen bg-gradient-to-b from-secondary/30 to-background">
-        {/* Hero Section */}
-        <div
-          className="relative h-64 bg-cover bg-center overflow-hidden"
-          style={{
-            backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663538305020/J5xEkFmwTdNhqDmPPC4J5x/stockflow-hero-bg-ThK62hhmuaBD6rCqSn3Egc.webp')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent" />
-
-          {/* Hero Content */}
-          <div className="relative z-10 h-full flex flex-col justify-center px-8 md:px-12">
-            <div className="animate-fade-in-up">
-              <h1 className="dashboard-title mb-2">StockFlow Dashboard</h1>
-              <p className="text-lg text-slate-700 font-medium">
-                Real-time inventory monitoring and warehouse management
-              </p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">🚗</span>
             </div>
+            <h1 className="text-2xl font-bold text-slate-900">JapanVehicles</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-slate-600 hover:text-slate-900">
+              <Heart className="w-6 h-6" />
+            </button>
+            <button className="relative p-2 text-slate-600 hover:text-slate-900">
+              <ShoppingCart className="w-6 h-6" />
+              {cartCount > 0 && (
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
+      </nav>
 
-        {/* Dashboard Content */}
-        <div className="px-8 md:px-12 py-12">
-          {/* KPI Cards Section */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold text-foreground mb-6" style={{ fontFamily: "Poppins" }}>
-              Key Performance Indicators
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <KPICard
-                title="Total SKUs"
-                value="1,247"
-                label="Active Products"
-                icon={<Package className="w-6 h-6" />}
-                trend="up"
-                trendValue="+12% from last month"
-                accentColor="teal"
-              />
-              <KPICard
-                title="Low Stock Alerts"
-                value="4"
-                label="Items Below Threshold"
-                icon={<AlertTriangle className="w-6 h-6" />}
-                alert={true}
-                accentColor="red"
-              />
-              <KPICard
-                title="Orders Pending"
-                value="12"
-                label="Purchase Orders"
-                icon={<TrendingUp className="w-6 h-6" />}
-                trend="down"
-                trendValue="-3 from yesterday"
-                accentColor="amber"
-              />
-            </div>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">Premium Japanese Vehicles</h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Authentic imports from Japan with certified quality and warranty
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button className="bg-white text-blue-600 hover:bg-blue-50">Browse Catalog</Button>
+            <Button variant="outline" className="border-white text-white hover:bg-blue-700">
+              Learn More
+            </Button>
           </div>
+        </div>
+      </section>
 
-          {/* Charts and Alerts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-            {/* Stock Chart - Takes 2 columns */}
-            <div className="lg:col-span-2">
-              <StockChart data={stockData} />
+      {/* Search & Filter Section */}
+      <section className="bg-white border-b border-slate-200 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search by make or model..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            <select
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {regions.map((region) => (
+                <option key={region} value={region}>
+                  {region === "all" ? "All Regions" : region}
+                </option>
+              ))}
+            </select>
+            <Button className="bg-blue-600 hover:bg-blue-700">Search</Button>
+          </div>
+        </div>
+      </section>
 
-            {/* Quick Stats */}
-            <div className="p-6 rounded-3xl bg-white border border-border soft-shadow animate-fade-in-up">
-              <h3 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "Poppins" }}>
-                Quick Stats
-              </h3>
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-secondary/50 border border-border">
-                  <p className="text-sm text-muted-foreground mb-1">Avg Utilization</p>
-                  <p className="text-2xl font-bold text-foreground" style={{ fontFamily: "Poppins" }}>
-                    76%
-                  </p>
-                  <div className="w-full h-2 bg-white rounded-full mt-2 overflow-hidden">
-                    <div className="h-full w-3/4 bg-gradient-to-r from-accent to-teal-400 rounded-full" />
+      {/* Vehicle Catalog */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-3xl font-bold text-slate-900 mb-8">Available Vehicles</h3>
+
+          {filteredVehicles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredVehicles.map((vehicle) => (
+                <div
+                  key={vehicle.id}
+                  className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                >
+                  {/* Image */}
+                  <div className="relative h-64 bg-slate-200 overflow-hidden">
+                    <img
+                      src={vehicle.imageUrl}
+                      alt={`${vehicle.make} ${vehicle.model}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      {vehicle.year}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-4">
+                    <h4 className="text-xl font-bold text-slate-900 mb-2">
+                      {vehicle.make} {vehicle.model}
+                    </h4>
+
+                    {/* Details */}
+                    <div className="space-y-2 mb-4 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        {vehicle.region}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        {vehicle.mileage?.toLocaleString()} km
+                      </div>
+                      <div className="inline-block px-2 py-1 bg-slate-100 rounded text-xs font-semibold text-slate-700 capitalize">
+                        {vehicle.condition}
+                      </div>
+                    </div>
+
+                    {/* Price & Action */}
+                    <div className="border-t border-slate-200 pt-4 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-5 h-5 text-green-600" />
+                        <span className="text-2xl font-bold text-slate-900">
+                          ${vehicle.price.toLocaleString()}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={() => handleAddToCart(vehicle.id)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                      >
+                        Add to Cart
+                      </Button>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-xl text-slate-600">No vehicles found matching your criteria.</p>
+            </div>
+          )}
+        </div>
+      </section>
 
-                <div className="p-4 rounded-2xl bg-secondary/50 border border-border">
-                  <p className="text-sm text-muted-foreground mb-1">Total Inventory Value</p>
-                  <p className="text-2xl font-bold text-foreground" style={{ fontFamily: "Poppins" }}>
-                    $2.4M
-                  </p>
-                  <p className="text-xs text-green-600 mt-2">↑ 8% vs last quarter</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-secondary/50 border border-border">
-                  <p className="text-sm text-muted-foreground mb-1">Warehouse Zones</p>
-                  <p className="text-2xl font-bold text-foreground" style={{ fontFamily: "Poppins" }}>
-                    4 Active
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">All zones operational</p>
-                </div>
+      {/* Features Section */}
+      <section className="bg-slate-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-3xl font-bold text-slate-900 mb-12 text-center">Why Choose Us</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-lg bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">✓</span>
               </div>
+              <h4 className="text-xl font-bold text-slate-900 mb-2">Certified Quality</h4>
+              <p className="text-slate-600">All vehicles inspected and certified before shipment</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-lg bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🚚</span>
+              </div>
+              <h4 className="text-xl font-bold text-slate-900 mb-2">Fast Shipping</h4>
+              <p className="text-slate-600">Direct imports from Japan with tracking</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-lg bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">💰</span>
+              </div>
+              <h4 className="text-xl font-bold text-slate-900 mb-2">Best Prices</h4>
+              <p className="text-slate-600">Competitive pricing with warranty included</p>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Reorder Alerts Section */}
-          <div className="mb-12">
-            <ReorderAlerts alerts={reorderAlerts} />
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h5 className="font-bold mb-4">About Us</h5>
+              <p className="text-slate-400 text-sm">Premium Japanese vehicle imports with certified quality</p>
+            </div>
+            <div>
+              <h5 className="font-bold mb-4">Quick Links</h5>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><a href="#" className="hover:text-white">Browse Vehicles</a></li>
+                <li><a href="#" className="hover:text-white">About</a></li>
+                <li><a href="#" className="hover:text-white">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="font-bold mb-4">Support</h5>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><a href="#" className="hover:text-white">FAQ</a></li>
+                <li><a href="#" className="hover:text-white">Shipping Info</a></li>
+                <li><a href="#" className="hover:text-white">Returns</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="font-bold mb-4">Contact</h5>
+              <p className="text-slate-400 text-sm">Email: info@japanvehicles.com</p>
+              <p className="text-slate-400 text-sm">Phone: +81-3-XXXX-XXXX</p>
+            </div>
           </div>
-
-          {/* Warehouse Map Section */}
-          <div className="mb-12">
-            <WarehouseMap zones={warehouseZones} />
-          </div>
-
-          {/* Footer Section */}
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-secondary to-secondary/50 border border-border text-center animate-fade-in-up">
-            <p className="text-sm text-foreground">
-              Last updated: <span className="font-semibold">2 minutes ago</span> • 
-              Next sync: <span className="font-semibold">in 3 minutes</span>
-            </p>
+          <div className="border-t border-slate-700 pt-8 text-center text-slate-400 text-sm">
+            <p>&copy; 2024 JapanVehicles. All rights reserved.</p>
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+      </footer>
+    </div>
   );
 }
