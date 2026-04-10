@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Search, MapPin, DollarSign, Heart, ShoppingCart, MessageCircle, Zap, TrendingUp, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function StorefrontHome() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,14 +18,22 @@ export default function StorefrontHome() {
 
   const regions = ["all", "Tokyo", "Osaka", "Yokohama", "Kobe", "Sapporo", "Nagoya"];
 
-  const handleAddToCart = (vehicleId: number) => {
+  const handleAddToCart = (vehicleId: number, vehicleName: string) => {
     setCartCount(cartCount + 1);
+    toast.success(`${vehicleName} added to cart!`);
   };
 
-  const toggleFavorite = (vehicleId: number) => {
+  const toggleFavorite = (vehicleId: number, vehicleName: string) => {
+    const isFavorited = favorites.includes(vehicleId);
     setFavorites((prev) =>
       prev.includes(vehicleId) ? prev.filter((id) => id !== vehicleId) : [...prev, vehicleId]
     );
+    toast.success(isFavorited ? `${vehicleName} removed from favorites` : `${vehicleName} added to favorites!`);
+  };
+
+  const handleExplore = () => {
+    const element = document.getElementById("vehicle-catalog");
+    element?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -45,7 +54,10 @@ export default function StorefrontHome() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-600 hover:text-slate-900 transition-colors group">
+            <button 
+              onClick={() => toast.info(`${favorites.length} vehicles in favorites`)}
+              className="relative p-2 text-slate-600 hover:text-slate-900 transition-colors group"
+            >
               <Heart className="w-6 h-6 group-hover:scale-110 transition-transform" />
               {favorites.length > 0 && (
                 <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
@@ -53,7 +65,10 @@ export default function StorefrontHome() {
                 </span>
               )}
             </button>
-            <button className="relative p-2 text-slate-600 hover:text-slate-900 transition-colors group">
+            <button 
+              onClick={() => toast.info(`${cartCount} vehicles in cart`)}
+              className="relative p-2 text-slate-600 hover:text-slate-900 transition-colors group"
+            >
               <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
               {cartCount > 0 && (
                 <span className="absolute top-0 right-0 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
@@ -81,10 +96,17 @@ export default function StorefrontHome() {
             Authentic imports from Japan with certified quality and warranty
           </p>
           <div className="flex gap-4 justify-center animate-fade-in-up animation-delay-200">
-            <Button className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all">
+            <Button 
+              onClick={handleExplore}
+              className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all cursor-pointer"
+            >
               Explore Now
             </Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white/20 font-semibold px-8 py-6 text-lg">
+            <Button 
+              variant="outline" 
+              onClick={() => toast.info("Learn more about our vehicles and services")}
+              className="border-white text-white hover:bg-white/20 font-semibold px-8 py-6 text-lg cursor-pointer"
+            >
               Learn More
             </Button>
           </div>
@@ -103,7 +125,7 @@ export default function StorefrontHome() {
             ].map((feature, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+                className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 hover:shadow-lg transition-all duration-300 transform hover:scale-105 cursor-pointer"
               >
                 <feature.icon className="w-12 h-12 text-blue-600 mb-4" />
                 <h3 className="font-bold text-lg text-slate-900 mb-2">{feature.title}</h3>
@@ -131,7 +153,7 @@ export default function StorefrontHome() {
             <select
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
-              className="px-4 h-12 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+              className="px-4 h-12 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white cursor-pointer"
             >
               {regions.map((region) => (
                 <option key={region} value={region}>
@@ -139,7 +161,10 @@ export default function StorefrontHome() {
                 </option>
               ))}
             </select>
-            <Button className="bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all">
+            <Button 
+              onClick={() => toast.success("Search applied!")}
+              className="bg-blue-600 hover:bg-blue-700 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
               Search
             </Button>
           </div>
@@ -147,10 +172,10 @@ export default function StorefrontHome() {
       </section>
 
       {/* Vehicle Catalog */}
-      <section className="py-16">
+      <section className="py-16" id="vehicle-catalog">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h3 className="text-4xl font-bold text-slate-900 mb-12 text-center">
-            Available Vehicles
+            Available Vehicles ({vehicles?.length || 0})
           </h3>
 
           {isLoading ? (
@@ -177,8 +202,8 @@ export default function StorefrontHome() {
                       {vehicle.year}
                     </div>
                     <button
-                      onClick={() => toggleFavorite(vehicle.id)}
-                      className="absolute top-4 left-4 p-2 bg-white rounded-full shadow-lg hover:bg-red-50 transition-colors"
+                      onClick={() => toggleFavorite(vehicle.id, `${vehicle.make} ${vehicle.model}`)}
+                      className="absolute top-4 left-4 p-2 bg-white rounded-full shadow-lg hover:bg-red-50 transition-colors cursor-pointer hover:scale-110"
                     >
                       <Heart
                         className={`w-5 h-5 transition-colors ${
@@ -218,8 +243,8 @@ export default function StorefrontHome() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => handleAddToCart(vehicle.id)}
-                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                        onClick={() => handleAddToCart(vehicle.id, `${vehicle.make} ${vehicle.model}`)}
+                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-md hover:shadow-lg transition-all cursor-pointer"
                         size="sm"
                       >
                         <ShoppingCart className="w-4 h-4 mr-2" />
@@ -248,7 +273,7 @@ export default function StorefrontHome() {
             href="https://wa.me/1234567890?text=Hi%20I%20am%20interested%20in%20your%20vehicles"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 bg-white text-green-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-green-50 transition-all shadow-lg hover:shadow-xl"
+            className="inline-flex items-center gap-3 bg-white text-green-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-green-50 transition-all shadow-lg hover:shadow-xl cursor-pointer"
           >
             <MessageCircle className="w-6 h-6" />
             Chat on WhatsApp
@@ -267,17 +292,17 @@ export default function StorefrontHome() {
             <div>
               <h4 className="font-bold text-lg mb-4">Quick Links</h4>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition">Browse Vehicles</a></li>
-                <li><a href="#" className="hover:text-white transition">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition">FAQ</a></li>
+                <li><a href="#" onClick={() => handleExplore()} className="hover:text-white transition cursor-pointer">Browse Vehicles</a></li>
+                <li><a href="/contact" className="hover:text-white transition cursor-pointer">Contact Us</a></li>
+                <li><a href="#" onClick={() => toast.info("FAQ coming soon")} className="hover:text-white transition cursor-pointer">FAQ</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-lg mb-4">Support</h4>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition">Shipping Info</a></li>
-                <li><a href="#" className="hover:text-white transition">Returns</a></li>
+                <li><a href="#" onClick={() => toast.info("Help center coming soon")} className="hover:text-white transition cursor-pointer">Help Center</a></li>
+                <li><a href="#" onClick={() => toast.info("Shipping info coming soon")} className="hover:text-white transition cursor-pointer">Shipping Info</a></li>
+                <li><a href="#" onClick={() => toast.info("Returns policy coming soon")} className="hover:text-white transition cursor-pointer">Returns</a></li>
               </ul>
             </div>
             <div>

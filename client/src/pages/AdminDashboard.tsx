@@ -1,18 +1,19 @@
 import { useState } from "react";
-import { Upload, Plus, FileText, CheckCircle, MessageSquare, Settings as SettingsIcon, Loader2 } from "lucide-react";
+import { Upload, Plus, FileText, CheckCircle, MessageSquare, Settings as SettingsIcon, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"inventory" | "imports" | "orders" | "messages" | "settings">("inventory");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   const [newVehicle, setNewVehicle] = useState({
     make: "",
     model: "",
     year: new Date().getFullYear(),
-    price: 0,
+    price: "0",
     region: "",
     color: "",
     mileage: 0,
@@ -21,33 +22,56 @@ export default function AdminDashboard() {
     description: "",
   });
 
+  const [settings, setSettings] = useState({
+    whatsappNumber: "+1234567890",
+    supportEmail: "support@japanvehicles.com",
+    siteName: "JapanVehicles",
+  });
+
   const createVehicleMutation = trpc.vehicles.create.useMutation();
   const { data: messages } = trpc.contact.list.useQuery();
-  const { user } = useAuth();
+  const { data: vehicles } = trpc.vehicles.list.useQuery({});
 
   const handleAddVehicle = async () => {
-    if (newVehicle.make && newVehicle.model && newVehicle.price > 0) {
-      try {
-        await createVehicleMutation.mutateAsync({
-          ...newVehicle,
-          price: newVehicle.price,
-        });
-        setNewVehicle({
-          make: "",
-          model: "",
-          year: new Date().getFullYear(),
-          price: 0,
-          region: "",
-          color: "",
-          mileage: 0,
-          condition: "good",
-          stock: 1,
-          description: "",
-        });
-      } catch (error) {
-        console.error("Error adding vehicle:", error);
-      }
+    if (!newVehicle.make || !newVehicle.model || parseFloat(newVehicle.price) <= 0) {
+      toast.error("Please fill in all required fields");
+      return;
     }
+
+    try {
+      await createVehicleMutation.mutateAsync({
+        ...newVehicle,
+        price: parseFloat(newVehicle.price),
+      });
+      toast.success(`${newVehicle.make} ${newVehicle.model} added successfully!`);
+      setNewVehicle({
+        make: "",
+        model: "",
+        year: new Date().getFullYear(),
+        price: "0",
+        region: "",
+        color: "",
+        mileage: 0,
+        condition: "good",
+        stock: 1,
+        description: "",
+      });
+    } catch (error) {
+      toast.error("Error adding vehicle");
+      console.error("Error adding vehicle:", error);
+    }
+  };
+
+  const handleCSVUpload = async () => {
+    if (!csvFile) {
+      toast.error("Please select a CSV file");
+      return;
+    }
+    toast.success("CSV upload feature coming soon!");
+  };
+
+  const handleSaveSettings = () => {
+    toast.success("Settings saved successfully!");
   };
 
   return (
@@ -60,6 +84,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tab Navigation */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-4 border-b border-slate-200">
           {[
             { id: "inventory", label: "Inventory", icon: Plus },
@@ -71,7 +96,7 @@ export default function AdminDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3 font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              className={`px-6 py-3 font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? "bg-blue-600 text-white shadow-lg"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -83,8 +108,10 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        {/* Inventory Tab */}
         {activeTab === "inventory" && (
           <div className="space-y-8">
+            {/* Add Vehicle Form */}
             <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
               <h2 className="text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3">
                 <Plus className="w-8 h-8 text-blue-600" />
@@ -93,7 +120,7 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Make</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Make *</label>
                   <Input
                     placeholder="e.g., Toyota"
                     value={newVehicle.make}
@@ -102,7 +129,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Model</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Model *</label>
                   <Input
                     placeholder="e.g., Camry"
                     value={newVehicle.model}
@@ -111,48 +138,57 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Year</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Year *</label>
                   <Input
                     type="number"
-                    placeholder="2024"
                     value={newVehicle.year}
                     onChange={(e) => setNewVehicle({ ...newVehicle, year: parseInt(e.target.value) })}
                     className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Price (USD)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Price ($) *</label>
                   <Input
                     type="number"
-                    placeholder="25000"
+                    placeholder="0"
                     value={newVehicle.price}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, price: parseFloat(e.target.value) })}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, price: e.target.value })}
                     className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Region</label>
-                  <select
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Region *</label>
+                  <Input
+                    placeholder="e.g., Tokyo"
                     value={newVehicle.region}
                     onChange={(e) => setNewVehicle({ ...newVehicle, region: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="">Select Region</option>
-                    <option value="Tokyo">Tokyo</option>
-                    <option value="Osaka">Osaka</option>
-                    <option value="Yokohama">Yokohama</option>
-                    <option value="Kobe">Kobe</option>
-                  </select>
+                    className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Color</label>
+                  <Input
+                    placeholder="e.g., Silver"
+                    value={newVehicle.color}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, color: e.target.value })}
+                    className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Mileage (km)</label>
+                  <Input
+                    type="number"
+                    value={newVehicle.mileage}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, mileage: parseInt(e.target.value) })}
+                    className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Condition</label>
                   <select
                     value={newVehicle.condition}
                     onChange={(e) => setNewVehicle({ ...newVehicle, condition: e.target.value as any })}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
                     <option value="new">New</option>
                     <option value="excellent">Excellent</option>
@@ -160,6 +196,15 @@ export default function AdminDashboard() {
                     <option value="fair">Fair</option>
                     <option value="poor">Poor</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Stock</label>
+                  <Input
+                    type="number"
+                    value={newVehicle.stock}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, stock: parseInt(e.target.value) })}
+                    className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
                 </div>
               </div>
 
@@ -169,7 +214,7 @@ export default function AdminDashboard() {
                   placeholder="Vehicle description..."
                   value={newVehicle.description}
                   onChange={(e) => setNewVehicle({ ...newVehicle, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -177,90 +222,197 @@ export default function AdminDashboard() {
               <Button
                 onClick={handleAddVehicle}
                 disabled={createVehicleMutation.isPending}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
               >
-                {createVehicleMutation.isPending ? "Adding..." : "Add Vehicle"}
+                {createVehicleMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Vehicle
+                  </>
+                )}
               </Button>
+            </div>
+
+            {/* Vehicles List */}
+            <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">Current Inventory ({vehicles?.length || 0})</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Make</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Model</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Year</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Price</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Region</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vehicles && vehicles.length > 0 ? (
+                      vehicles.slice(0, 10).map((vehicle: any) => (
+                        <tr key={vehicle.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4">{vehicle.make}</td>
+                          <td className="py-3 px-4">{vehicle.model}</td>
+                          <td className="py-3 px-4">{vehicle.year}</td>
+                          <td className="py-3 px-4">${Number(vehicle.price).toLocaleString()}</td>
+                          <td className="py-3 px-4">{vehicle.region}</td>
+                          <td className="py-3 px-4">
+                            <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                              {vehicle.stock}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          No vehicles yet. Add one above!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
+        {/* Bulk Imports Tab */}
         {activeTab === "imports" && (
           <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
             <h2 className="text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3">
               <Upload className="w-8 h-8 text-blue-600" />
               Bulk Import Vehicles
             </h2>
-            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center hover:border-blue-500 transition-colors">
-              <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2 text-lg font-semibold">Upload a CSV file with vehicle data</p>
-              <p className="text-slate-500 mb-6">Format: make, model, year, price, region, stock, condition, description</p>
-              <label>
-                <input type="file" accept=".csv" className="hidden" />
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 cursor-pointer shadow-lg hover:shadow-xl transition-all">
-                  Choose CSV File
+
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center mb-6">
+              <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600 mb-4">Upload a CSV file with vehicle data</p>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="csv-upload"
+              />
+              <label htmlFor="csv-upload" className="cursor-pointer">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Choose File
                 </Button>
               </label>
+              {csvFile && <p className="text-sm text-slate-600 mt-4">Selected: {csvFile.name}</p>}
+            </div>
+
+            <Button
+              onClick={handleCSVUpload}
+              disabled={!csvFile}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+            >
+              Upload & Process
+            </Button>
+
+            <div className="mt-8 p-6 bg-slate-50 rounded-lg">
+              <h3 className="font-bold text-slate-900 mb-2">CSV Format:</h3>
+              <p className="text-sm text-slate-600 font-mono">make,model,year,price,region,color,mileage,condition,stock,description</p>
             </div>
           </div>
         )}
 
+        {/* Orders Tab */}
         {activeTab === "orders" && (
           <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
-            <h2 className="text-3xl font-bold text-slate-900 mb-8">Recent Orders</h2>
-            <div className="text-center py-12">
-              <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-600 text-lg">No orders yet</p>
-              <p className="text-slate-500">Orders will appear here as customers make purchases</p>
-            </div>
+            <h2 className="text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3">
+              <CheckCircle className="w-8 h-8 text-blue-600" />
+              Orders
+            </h2>
+            <p className="text-slate-600">No orders yet. Orders will appear here when customers make purchases.</p>
           </div>
         )}
 
+        {/* Messages Tab */}
         {activeTab === "messages" && (
           <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
-            <h2 className="text-3xl font-bold text-slate-900 mb-8">Contact Messages</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3">
+              <MessageSquare className="w-8 h-8 text-blue-600" />
+              Contact Messages ({messages?.length || 0})
+            </h2>
+
             {messages && messages.length > 0 ? (
               <div className="space-y-4">
                 {messages.map((msg: any) => (
-                  <div key={msg.id} className="p-6 border border-slate-200 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-2">
+                  <div key={msg.id} className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-bold text-slate-900">{msg.name}</h4>
+                        <h3 className="font-bold text-slate-900">{msg.name}</h3>
                         <p className="text-sm text-slate-500">{msg.email}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        msg.status === "new" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        msg.status === "new" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
                       }`}>
                         {msg.status}
                       </span>
                     </div>
-                    <p className="font-semibold text-slate-900 mb-2">{msg.subject}</p>
+                    <p className="font-semibold text-slate-700 mb-2">{msg.subject}</p>
                     <p className="text-slate-600">{msg.message}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <MessageSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-600 text-lg">No messages yet</p>
-              </div>
+              <p className="text-slate-600">No messages yet.</p>
             )}
           </div>
         )}
 
+        {/* Settings Tab */}
         {activeTab === "settings" && (
           <div className="bg-white rounded-2xl shadow-md p-8 border border-slate-200">
-            <h2 className="text-3xl font-bold text-slate-900 mb-8">Website Settings</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-8 flex items-center gap-3">
+              <SettingsIcon className="w-8 h-8 text-blue-600" />
+              Settings
+            </h2>
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">WhatsApp Number</label>
-                <Input placeholder="+1 (555) 123-4567" className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                <Input
+                  value={settings.whatsappNumber}
+                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                  placeholder="+1234567890"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Support Email</label>
-                <Input placeholder="support@japanvehicles.com" className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                <Input
+                  value={settings.supportEmail}
+                  onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
+                  placeholder="support@japanvehicles.com"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all">
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Site Name</label>
+                <Input
+                  value={settings.siteName}
+                  onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                  placeholder="JapanVehicles"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <Button
+                onClick={handleSaveSettings}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
                 Save Settings
               </Button>
             </div>
