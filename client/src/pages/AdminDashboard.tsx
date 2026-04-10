@@ -1,20 +1,12 @@
 import { useState } from "react";
-import { Upload, Plus, FileText, CheckCircle, MessageSquare, Settings as SettingsIcon } from "lucide-react";
+import { Upload, Plus, FileText, CheckCircle, MessageSquare, Settings as SettingsIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"inventory" | "imports" | "orders" | "messages" | "settings">("inventory");
-
-  if (user?.role !== "admin") {
-    navigate("/");
-    return null;
-  }
 
   const [newVehicle, setNewVehicle] = useState({
     make: "",
@@ -31,6 +23,7 @@ export default function AdminDashboard() {
 
   const createVehicleMutation = trpc.vehicles.create.useMutation();
   const { data: messages } = trpc.contact.list.useQuery();
+  const { user } = useAuth();
 
   const handleAddVehicle = async () => {
     if (newVehicle.make && newVehicle.model && newVehicle.price > 0) {
@@ -62,7 +55,7 @@ export default function AdminDashboard() {
       <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-8 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-blue-100">Welcome back, {user?.name || "Admin"}</p>
+          <p className="text-blue-100">Manage your vehicle inventory and orders</p>
         </div>
       </div>
 
