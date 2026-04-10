@@ -110,3 +110,43 @@ export const orderItems = mysqlTable("orderItems", {
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = typeof orderItems.$inferInsert;
+
+// Contact messages
+export const contactMessages = mysqlTable("contactMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  status: mysqlEnum("status", ["new", "read", "replied", "closed"]).default("new"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = typeof contactMessages.$inferInsert;
+
+// Website settings
+export const settings = mysqlTable("settings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value"),
+  description: text("description"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = typeof settings.$inferInsert;
+
+// Vehicle images (for S3 storage tracking)
+export const vehicleImages = mysqlTable("vehicleImages", {
+  id: int("id").autoincrement().primaryKey(),
+  vehicleId: int("vehicleId").notNull(),
+  imageUrl: text("imageUrl").notNull(),
+  s3Key: varchar("s3Key", { length: 255 }).notNull(),
+  isPrimary: boolean("isPrimary").default(false),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+
+export type VehicleImage = typeof vehicleImages.$inferSelect;
+export type InsertVehicleImage = typeof vehicleImages.$inferInsert;
