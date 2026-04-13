@@ -33,7 +33,7 @@ export const contactRouter = router({
     }),
 
   // Get all messages (admin only)
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: publicProcedure.query(async ({ ctx }) => {
     if (ctx.user?.role !== "admin") {
       throw new Error("Unauthorized");
     }
@@ -46,7 +46,7 @@ export const contactRouter = router({
   }),
 
   // Mark message as read (admin only)
-  markAsRead: protectedProcedure
+  markAsRead: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user?.role !== "admin") {
@@ -85,7 +85,7 @@ export const settingsRouter = router({
   }),
 
   // Update setting (admin only)
-  update: protectedProcedure
+  update: publicProcedure
     .input(
       z.object({
         key: z.string(),

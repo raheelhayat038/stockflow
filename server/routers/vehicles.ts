@@ -54,7 +54,7 @@ export const vehicleRouter = router({
     }),
 
   // Create vehicle (admin only)
-  create: protectedProcedure
+  create: publicProcedure
     .input(
       z.object({
         make: z.string().min(1),
@@ -92,7 +92,7 @@ export const vehicleRouter = router({
     }),
 
   // Update vehicle (admin only)
-  update: protectedProcedure
+  update: publicProcedure
     .input(
       z.object({
         id: z.number(),
@@ -121,7 +121,7 @@ export const vehicleRouter = router({
     }),
 
   // Delete vehicle (admin only)
-  delete: protectedProcedure
+  delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.user?.role !== "admin") {
@@ -137,7 +137,7 @@ export const vehicleRouter = router({
     }),
 
   // Upload vehicle image
-  uploadImage: protectedProcedure
+  uploadImage: publicProcedure
     .input(
       z.object({
         vehicleId: z.number(),
